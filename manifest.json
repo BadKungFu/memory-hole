@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Memory Hole",
   "description": "An extension for memory holing certain key words",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "permissions": [
     "activeTab"
   ],

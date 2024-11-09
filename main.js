@@ -10,7 +10,8 @@ const TEXT_REPLACEMENTS = [
   {re: /Kennedy/gi, to: 'Wormtail'},
   {re: /JD Vance/gi, to: 'Sofa King'},
   {re: /J\.D\. Vance/gi, to: 'Sofa King'},
-  {re: /Vance/gi, to: 'Sofa King'},
+  {re: /\WVance\W/gi, to: 'Sofa King'},
+  {re: /Make America Great Again/gi, to: 'Cult Membership'},
 ]
 
 
@@ -119,12 +120,13 @@ async function performMemoryHole(global) {
   // watch the whole dom for node changes that might contain the text.
   const options = {
     subtree: true,
-    childTree: true,
+    childList: true,
   }
   const observer = new MutationObserver(async (mutationList) => {
     // could probably just target the things that mutated, but for now hamfistedly walk the whole tree.
     await performMemoryHole(global);
   });
+  observer.observe(global.document, options);
   
   await performMemoryHole(global);
 })(globalThis);
