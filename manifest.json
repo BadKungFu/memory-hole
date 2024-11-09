@@ -3,9 +3,8 @@
   "name": "Memory Hole",
   "description": "An extension for memory holing certain key words",
   "version": "0.0.1",
-  "permissions": [],
-  "host_permissions": [
-      "*://*/*"
+  "permissions": [
+    "activeTab"
   ],
   "content_scripts": [{
       "js": ["main.js"],
