@@ -2,13 +2,12 @@
   "manifest_version": 3,
   "name": "Memory Hole",
   "description": "An extension for memory holing certain key words",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "permissions": [
     "activeTab"
   ],
   "content_scripts": [{
       "js": ["main.js"],
-      "matches": ["http://*/*", "https://*/*"],
       "run_at": "document_idle"
   }]
 }
