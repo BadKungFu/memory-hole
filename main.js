@@ -1,19 +1,12 @@
 const PROCESSED = Symbol("walker processed");
 
 const TEXT_REPLACEMENTS = [
-  {re: /Donald Trump/gi, to: 'Orange Man'},
-  {re: /Trump/gi, to: 'Orange Man'}, // maybe strumpet.
-  {re: /Elon Musk/gi, to: 'Some Guy'},
-  {re: /Elon/gi, to: 'Some Guy'},
-  {re: /Musk/gi, to: 'Some Guy'},
-  {re: /RFK/gi, to: 'Wormtail'},
-  {re: /Kennedy/gi, to: 'Wormtail'},
-  {re: /JD Vance/gi, to: 'Sofa King'},
-  {re: /J\.D\. Vance/gi, to: 'Sofa King'},
-  {re: /Vance/gi, to: 'Sofa King'}, // maybe advancement
-  {re: /Make America Great Again/gi, to: 'Cult Membership'},
-]
-
+  {re: /(?<![a-z])(donald j\. trump|donald j trump|donald trump|trump)(?![a-z])/gi, to: 'Orange Man'},
+  {re: /(?<![a-z])(elon musk|elon|musk)(?![a-z])/gi, to: 'Some Guy'},
+  {re: /(?<![a-z])(rfk|kennedy)(?![a-z])/gi, to: 'Worm Brain'},
+  {re: /(?<![a-z])(j\.d\. vance|jd vance|vance)(?![a-z])/gi, to: 'Sofa King'},
+  {re: /(?<![a-z])(make america great again|maga)(?![a-z])/gi, to: 'Death Cult'},
+];
 
 function performTextHole(text) {
   let txt = text || "";
@@ -28,17 +21,33 @@ function shouldHole(text) {
   return TEXT_REPLACEMENTS.some(replacement => replacement.re.test(text));
 }
 
-function performImageHole(img) {
-  if (img[PROCESSED]) {
+function applyHolingScope(node) {
+  if (node[PROCESSED]) {
     return;
   }
-  img.classList.add("memoryholed");
-  img[PROCESSED] = true;
-
+  // Would prefer to use a class so we don't have to use an attribute selector but
+  // classlists are often paved over by various frameworks whereas the custom attribute
+  // won't be.
+  if (node.setAttribute) {
+    node.setAttribute("data-memoryholed", "true");
+  }
+  node[PROCESSED] = true;
 }
 
-function holeSimilarLinks(global, node) {
-  // find a link
+function handleHoledLinkClick(evt) {
+  const node = evt.currentTarget;
+  if (node && node.getAttribute("data-original-href")) {
+    if (confirm("Restore Link?")) {
+      node.setAttribute("href", node.getAttribute("data-original-href"));
+      node.removeAttribute("data-original-href");
+      node.removeEventListener("click", handleHoledLinkClick);
+    }
+  }
+  evt.preventDefault();
+}
+
+function expandHoleScope(global, node) {
+  // See if this is contained in a link and then hole that link and any others with the same href.
   const link = node.closest("a");
   if (link) {
     const href = link.getAttribute("href");
@@ -50,17 +59,21 @@ function holeSimilarLinks(global, node) {
           continue;
         }
 
-        sim[PROCESSED] = true;
+        // Allow you to opt out of memory hole-ing a link.
         sim.setAttribute("data-original-href", href);
         sim.setAttribute("href", "#");
-        // Images that are within links but weren't identified before.
-        // Be better, use alt text people!
-        const imgs = sim.querySelectorAll("img");
-        for (const img of imgs) {
-          performImageHole(img);
-        }
+        sim.addEventListener("click", handleHoledLinkClick, {
+          capture: true
+        });
+
+        applyHolingScope(sim);
       }
     }
+  }
+  // See if this is in an article tag, just hole the tag
+  const article = node.closest("article");
+  if (article) {
+    applyHolingScope(article);
   }
 }
 
@@ -78,20 +91,20 @@ function performMemoryHole(global) {
     
   while (textWalker.nextNode()) {
     const node = textWalker.currentNode;
-    // mark the node as processed so it isn't scanned again
-    node[PROCESSED] = true;
     // replace the string
     node.textContent = performTextHole(node.textContent);
-    // Find everything that shares a link
-    holeSimilarLinks(global, node.parentElement);
+    // Find surrounding links and articles
+    expandHoleScope(global, node.parentElement);
+    // mark the node as processed so it isn't scanned again
+    node[PROCESSED] = true;
   }
 
-  // images are also problematic
+  // images are also problematic in and of themselves
   const imgWalker = global.document.createTreeWalker(global.document, NodeFilter.SHOW_ELEMENT, {
     acceptNode(node) {
       if (node[PROCESSED]) {
         // skip Just this node, still process its children.
-        return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_SKIP;
       }
       // TODO, support for picture and figure?
       if (node.nodeName.toLowerCase() !== "img") {
@@ -103,19 +116,19 @@ function performMemoryHole(global) {
         return NodeFilter.FILTER_ACCEPT;
       }
       // Alt text for sure since news sources should alt text everything.
-      return shouldHole(node.getAttribute("alt")) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      return shouldHole(node.getAttribute("alt")) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
     }
   });
   
   // TODO: Veeery similar to the above, so is the walker for that matter, could maybe refactor?
   while (imgWalker.nextNode()) {
     const node = imgWalker.currentNode;
+    // Directly mark this image
+    applyHolingScope(node);
+    // Find surrounding links and articles
+    expandHoleScope(global, node);
     // mark the node as processed so it isn't scanned again
     node[PROCESSED] = true;
-    // replace the image
-    performImageHole(node);
-    // Find everything that shares a link
-    holeSimilarLinks(global, node);
   }
 }
 

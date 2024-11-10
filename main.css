@@ -1,3 +1,11 @@
-img.memoryholed {
+/* memory hole any images with items that are tagged */
+*[data-memoryholed="true"] img,
+*[data-memoryholed="true"] picture,
+*[data-memoryholed="true"] figure
+/* and any items tagged directly */
+img[data-memoryholed="true"],
+picture[data-memoryholed="true"],
+figure[data-memoryholed="true"]
+{
   filter: blur(1em);
 }
