@@ -2,10 +2,7 @@
   "manifest_version": 3,
   "name": "Orange Man Memory Hole",
   "description": "An extension for memory holing certain names and keywords associated with the republican presidential campaign.",
-  "version": "0.0.9",
-  "permissions": [
-    "activeTab"
-  ],
+  "version": "0.1.0",
   "content_scripts": [{
       "js": ["main.js"],
       "css": ["main.css"],
