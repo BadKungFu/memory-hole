@@ -1,11 +1,26 @@
 const PROCESSED = Symbol("walker processed");
 
 const TEXT_REPLACEMENTS = [
-  {re: /(?<![a-z])(donald j\. trump|donald j trump|donald trump|trump)(?![a-z])/gi, to: 'Orange Man'},
-  {re: /(?<![a-z])(elon musk|elon|musk)(?![a-z])/gi, to: 'Some Guy'},
-  {re: /(?<![a-z])(rfk|kennedy)(?![a-z])/gi, to: 'Worm Brain'},
-  {re: /(?<![a-z])(j\.d\. vance|jd vance|vance)(?![a-z])/gi, to: 'Sofa King'},
-  {re: /(?<![a-z])(make america great again|maga)(?![a-z])/gi, to: 'Death Cult'},
+  {
+    re: /(?<![a-z])(donald j\. trump|donald j trump|donald trump|trump)(?![a-z])/gi,
+    to: "Orange Man",
+  },
+  {
+    re: /(?<![a-z])(elon musk|elon|musk)(?![a-z])/gi,
+    to: "Some Guy",
+  },
+  {
+    re: /(?<![a-z])(rfk|kennedy)(?![a-z])/gi,
+    to: "Worm Brain",
+  },
+  {
+    re: /(?<![a-z])(j\.d\. vance|jd vance|vance)(?![a-z])/gi,
+    to: "Sofa King",
+  },
+  {
+    re: /(?<![a-z])(make america great again|maga)(?![a-z])/gi,
+    to: "Death Cult",
+  },
 ];
 
 function performTextHole(text) {
@@ -18,7 +33,7 @@ function performTextHole(text) {
 
 function shouldHole(text) {
   // just if any will match, some should short circuit and not excute them all.
-  return TEXT_REPLACEMENTS.some(replacement => replacement.re.test(text));
+  return TEXT_REPLACEMENTS.some((replacement) => replacement.re.test(text));
 }
 
 function applyHolingScope(node) {
@@ -63,7 +78,7 @@ function expandHoleScope(global, node) {
         sim.setAttribute("data-original-href", href);
         sim.setAttribute("href", "#");
         sim.addEventListener("click", handleHoledLinkClick, {
-          capture: true
+          capture: true,
         });
 
         applyHolingScope(sim);
@@ -71,7 +86,7 @@ function expandHoleScope(global, node) {
     }
   }
   // See if this is in an article tag, just hole the tag
-  const article = node.closest("article");
+  const article = node.closest("li, section, article");
   if (article) {
     applyHolingScope(article);
   }
@@ -79,16 +94,21 @@ function expandHoleScope(global, node) {
 
 function performMemoryHole(global) {
   // walk everything looking for the thing to memory hole
-  const textWalker = global.document.createTreeWalker(global.document, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (node[PROCESSED]) {
-        return NodeFilter.FILTER_SKIP;
-      }
-      return shouldHole(node.textContent) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+  const textWalker = global.document.createTreeWalker(
+    global.document,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        if (node[PROCESSED]) {
+          return NodeFilter.FILTER_SKIP;
+        }
+        return shouldHole(node.textContent)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      },
     }
-  });
+  );
 
-    
   while (textWalker.nextNode()) {
     const node = textWalker.currentNode;
     // replace the string
@@ -100,26 +120,32 @@ function performMemoryHole(global) {
   }
 
   // images are also problematic in and of themselves
-  const imgWalker = global.document.createTreeWalker(global.document, NodeFilter.SHOW_ELEMENT, {
-    acceptNode(node) {
-      if (node[PROCESSED]) {
-        // skip Just this node, still process its children.
-        return NodeFilter.FILTER_SKIP;
-      }
-      // TODO, support for picture and figure?
-      if (node.nodeName.toLowerCase() !== "img") {
-        return NodeFilter.FILTER_SKIP
-      }
-      // TODO: support for source sets.
-      // This will only ever really match single word regexs, but better than nothing.
-      if (shouldHole(node.getAttribute("src"))) {
-        return NodeFilter.FILTER_ACCEPT;
-      }
-      // Alt text for sure since news sources should alt text everything.
-      return shouldHole(node.getAttribute("alt")) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+  const imgWalker = global.document.createTreeWalker(
+    global.document,
+    NodeFilter.SHOW_ELEMENT,
+    {
+      acceptNode(node) {
+        if (node[PROCESSED]) {
+          // skip Just this node, still process its children.
+          return NodeFilter.FILTER_SKIP;
+        }
+        // TODO, support for picture and figure?
+        if (node.nodeName.toLowerCase() !== "img") {
+          return NodeFilter.FILTER_SKIP;
+        }
+        // TODO: support for source sets.
+        // This will only ever really match single word regexs, but better than nothing.
+        if (shouldHole(node.getAttribute("src"))) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        // Alt text for sure since news sources should alt text everything.
+        return shouldHole(node.getAttribute("alt"))
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_SKIP;
+      },
     }
-  });
-  
+  );
+
   // TODO: Veeery similar to the above, so is the walker for that matter, could maybe refactor?
   while (imgWalker.nextNode()) {
     const node = imgWalker.currentNode;
@@ -132,14 +158,13 @@ function performMemoryHole(global) {
   }
 }
 
-
 // Actually initialize
 ((global) => {
   // watch the whole dom for node changes that might contain the text.
   const options = {
     subtree: true,
     childList: true,
-  }
+  };
   const observer = new MutationObserver((mutationList) => {
     // schedule this to happen on the next tick since it appears the mutation observer doesn't
     // seem to be capturing some final image additions on bsky
@@ -149,7 +174,7 @@ function performMemoryHole(global) {
     }, 0);
   });
   observer.observe(global.document, options);
-  
+
   // just perform an initial pass for essentially static sites.
   performMemoryHole(global);
 })(globalThis);
