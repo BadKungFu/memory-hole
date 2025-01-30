@@ -86,8 +86,9 @@ function expandHoleScope(global, node) {
     }
   }
   // See if this is in an article tag, just hole the tag
-  const article = node.closest("li, section, article");
+  const article = node.closest("li, article");
   if (article) {
+    // Maybe check bounding rect?
     applyHolingScope(article);
   }
 }
