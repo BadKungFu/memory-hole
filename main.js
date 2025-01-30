@@ -10,7 +10,7 @@ const TEXT_REPLACEMENTS = [
     to: "Some Guy",
   },
   {
-    re: /(?<![a-z])(rfk|kennedy)(?![a-z])/gi,
+    re: /(?<![a-z])(robert f\. kennedy|rfk|kennedy)(?![a-z])/gi,
     to: "Worm Brain",
   },
   {
